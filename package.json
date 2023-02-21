@@ -1,0 +1,16 @@
+{
+  "name": "js-env",
+  "version": "1.0.0",
+  "description": "Environment variables from .evn",
+  "main": "dist/src/main.js",
+  "scripts": {
+    "start": "tsc  --watch -p tsconfig.json"
+  },
+  "author": "Elmer Alluad Jr",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.14.0",
+    "eslint": "^8.34.0",
+    "typescript": "^4.9.5"
+  }
+}
