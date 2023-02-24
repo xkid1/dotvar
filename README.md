@@ -1,8 +1,11 @@
 # js-env
 
 <div align="center">
-<img align="left" alt="JavaScript" width="26px" src="https://raw.githubusercontent.com/github/explore/e94815998e4e0713912fed477a1f346ec04c3da2/topics/javascript/javascript.png" />
-<img align="left" alt="Node>js" width="26px" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/nodejs/nodejs.png" />
+    <span><img  src="https://raw.githubusercontent.com/github/explore/e94815998e4e0713912fed477a1f346ec04c3da2/topics/javascript/javascript.png" alt="JavaScript" width="26px"></span>
+    <span><img  src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/nodejs/nodejs.png"  alt="Node>js" width="26px" ></span>
+    
+<br>
+<br>
 </div>
 
 Js-env is a lightweight module that loads all the environment variables from a `.env` then add into the procees.env.
