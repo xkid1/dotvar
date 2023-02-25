@@ -11,7 +11,7 @@ export interface IOptions {
  * @version 1.0.0
  * @since 1.0.0
  */
-declare module 'js-env' {
+declare module 'dotvar' {
     /**
      * Parse .env file
      * @param src
