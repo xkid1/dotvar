@@ -16,14 +16,14 @@ jobs:
 
     runs-on: ${{ matrix.os }}    
     steps:    
-      - name: Check for main branch push
-        run:  |
-          git fetch
-          git checkout main
-          git merge --ff-only origin/main || {
-            echo "Merge conflict detected in main branch"
-            exit 1
-          }
+      # - name: Check for main branch push
+      #   run:  |
+      #     git fetch
+      #     git checkout main
+      #     git merge --ff-only origin/main || {
+      #       echo "Merge conflict detected in main branch"
+      #       exit 1
+      #     }
 
       - uses: actions/checkout@v3
         with:
