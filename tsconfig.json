@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "types": ["node"],
-        "target": "es2018",
-        "module": "ESNext",
+        "target": "ES2016",
+        "module": "CommonJS",
         "allowJs": true,
         "moduleResolution": "node",
         "esModuleInterop": true,
@@ -21,18 +21,10 @@
         "baseUrl": ".",
         "outDir": "dist",
         "rootDir": ".",
-
         "paths": {
             "~/*": ["src/*"]
         }
     },
-    "include": [
-        "**/*.ts",
-        "package.json",
-        "README.md",
-        "LICENSE",
-        "CHANGELOG.md",
-        "main.d.ts"
-    ],
+    "include": ["src/**/*.ts", "package.json", "main.d.ts"],
     "exclude": ["node_modules", "**/node_modules/*"]
 }
