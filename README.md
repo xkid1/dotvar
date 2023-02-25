@@ -19,7 +19,7 @@ Dotvar is a lightweight and no dependecry module that loads all the environment 
 import dotvar from 'dotvar';
 ```
 
-Or installing with `yarn add dotenv`
+Or installing with `yarn add dotvar`
 
 ## Usage
 
