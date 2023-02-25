@@ -1,4 +1,4 @@
-# js-env
+# dotvar
 
 <div align="center">
     <span><img  src="https://raw.githubusercontent.com/github/explore/e94815998e4e0713912fed477a1f346ec04c3da2/topics/javascript/javascript.png" alt="JavaScript" width="26px"></span>
@@ -6,16 +6,17 @@
     
 <br>
 <br>
+<hr>
 </div>
 
-Js-env is a lightweight module that loads all the environment variables from a `.env` then add into the procees.env.
+Dotvar is a lightweight and no dependecry module that loads all the environment variables from a `.env` then add into the procees.env.
 
 # Install
 
-`npm i js-env`
+`npm i dotvar`
 
 ```bash
-import jsEnv from 'js-env';
+import dotvar from 'dotvar';
 ```
 
 Or installing with `yarn add dotenv`
@@ -28,15 +29,15 @@ SECRET_KEY="secret key"
 ```
 
 ```javascript
-require('js-env').evnReader()
+require('dotvar').evnReader()
 console.log(process.env) // Check if working.
 ```
 
 .. or using ES6
 
 ```javascript
-import jsenv from 'js-env' 
-jsenv.evnReader()
+import dotvar from 'dotvar' 
+dotvar.read()
 
 ```
 

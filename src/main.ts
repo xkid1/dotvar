@@ -1,58 +1,61 @@
 import fs from 'fs';
 import path from 'path';
+
+export interface IOptions {
+    [key: string]: string;
+}
 /**
- * Class of reading .env file and set process.env object
- * Methods: evnParser, evnReader
- * evnParser - parse .env file
- * evnReader - read .env file and set process.env
- *
- * @version 1.0.0
- * @since 1.0.0
+ * Parse .env file
+ * @param data
+ * @returns  object
  */
+const parser = (data: string): IOptions => {
+    const obj: IOptions = {};
+    const lines = data
+        .split('\n')
+        .map((line: any) => line.replace(/['"]+/g, ''));
 
-class Main {
-    private obj: any = {};
-
-    /**
-     * Parse .env file
-     * @param data
-     * @returns  object
-     */
-    private evnParser(data: any): any {
-        const lines = data
-            .split('\n')
-            .map((line: any) => line.replace(/['"]+/g, ''));
-
-        for (const line of lines) {
-            const trimmed = line.trim();
-
-            if (trimmed.length === 0 || trimmed.startsWith('#')) {
-                continue;
-            }
-
-            const [key, value] = trimmed.split('=');
-            this.obj[key] = value;
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.length === 0 || trimmed.startsWith('#')) {
+            continue;
         }
-
-        return this.obj;
+        const [key, value] = trimmed.split('=');
+        obj[key] = value;
     }
 
-    /**
-     * Read .env file and set process.env
-     * @returns void
-     */
+    return obj;
+};
 
-    public evnReader(): void {
+/**
+ * Read .env file and set process.env
+ * @returns void
+ */
+const read = (): void => {
+    try {
         const evnPath = path.resolve(process.cwd(), '.env');
         const encoding = 'utf8';
-
         if (fs.existsSync(evnPath)) {
-            const data = this.evnParser(
-                fs.readFileSync(evnPath, { encoding: encoding })
-            );
-            Object.assign(process.env, data);
+            const data = parser(fs.readFileSync(evnPath, { encoding }));
+
+            Object.keys(data).forEach((key: string) => {
+                if (!Object.prototype.hasOwnProperty.call(process.env, key)) {
+                    process.env[key] = data[key];
+                }
+            });
+        }
+    } catch (error) {
+        switch (error.code) {
+            case 'ENOENT':
+                console.log('File not found!');
+                break;
+            case 'EACCES':
+                console.log('Permission denied!');
+                break;
+            default:
+                console.log('Unknown error: ' + error.code);
         }
     }
-}
+};
 
-export default Main;
+module.exports.read = read;
