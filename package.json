@@ -1,8 +1,9 @@
 {
   "name": "dotvar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Environment variables from .evn",
   "main": "dist/src/main.js",
+  "module": "dist/src/main.js",
   "scripts": {
     "dev": "tsc --watch -p tsconfig.json",
     "start": "tsc -p tsconfig.json"
@@ -41,11 +42,10 @@
   },
   "types": "main.d.ts",
   "tsd": {
-    "directory": "./main.d.ts"
+    "directory": "main.d.ts"
   },
   "files": [
-    "dist/src/main.js",
-    "main.d.ts"
+    "dist/"
   ],
   "homepage": "https://github.com/xkid1/dotvar#readme"
 }
