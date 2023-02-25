@@ -9,6 +9,7 @@
 
 [![Create Release](https://github.com/xkid1/dotvar/actions/workflows/release-tag.yml/badge.svg)](https://github.com/xkid1/dotvar/actions/workflows/release-tag.yml)
 [![publish](https://github.com/xkid1/dotvar/actions/workflows/publish.yml/badge.svg)](https://github.com/xkid1/dotvar/actions/workflows/publish.yml)
+[![LICENSE](https://img.shields.io/github/license/xkid1/dotvar.svg)](LICENSE)
 
 Dotvar is a lightweight and no dependecry module that loads all the environment variables from a `.env` then add into the procees.env.
 
