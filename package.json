@@ -1,10 +1,11 @@
 {
-  "name": "js-env",
+  "name": "dotvar",
   "version": "1.0.0",
   "description": "Environment variables from .evn",
   "main": "dist/src/main.js",
   "scripts": {
-    "start": "tsc  --watch -p tsconfig.json"
+    "dev": "tsc --watch -p tsconfig.json",
+    "start": "tsc -p tsconfig.json"
   },
   "author": "Elmer Alluad Jr",
   "license": "MIT",
@@ -12,5 +13,39 @@
     "@types/node": "^18.14.0",
     "eslint": "^8.34.0",
     "typescript": "^4.9.5"
-  }
+  },
+  "keywords": [
+    "dotvar",
+    "env",
+    "environment",
+    "variables",
+    "JavaScript Environment Variables",
+    "JavaScript Environment Variables from .env",
+    "Node Environment Variables",
+    "Node Environment Variables from .env",
+    ".env",
+    "settings",
+    "config",
+    "dotenv"
+  ],
+  "readmeFilename": "README.md",
+  "engines": {
+    "node": ">=14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xkid1/dotvar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xkid1/dotvar/issues"
+  },
+  "types": "main.d.ts",
+  "tsd": {
+    "directory": "./main.d.ts"
+  },
+  "files": [
+    "dist/src/main.js",
+    "main.d.ts"
+  ],
+  "homepage": "https://github.com/xkid1/dotvar#readme"
 }
