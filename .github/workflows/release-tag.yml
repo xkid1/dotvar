@@ -1,0 +1,83 @@
+name: Create Release
+on:
+  push:
+    tags:
+      - 'v*' 
+jobs:
+  release-tag:    
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:      
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16.x' 
+
+      - name: Build package
+        run: |
+          npm install
+          npm start
+          tar czvf dist.tar.gz dist
+          cp package.json dist/
+          cp README.md dist/
+          cp LICENSE dist/
+          cp main.d.ts dist/
+          cp CHANGELOG.md dist/
+
+      - name: Set release version        
+        uses: actions/checkout@master
+      - name: Create Release for Tag
+        id: create_release
+        uses: actions/create-release@latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Please refer to the [README](https://github.com/xkid1/dotvar/blob/main/README.md) for details.
+          draft: false
+          prerelease: false
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist.tar.gz
+
+      - name: Upload package.json
+        uses: actions/upload-artifact@v2
+        with:
+          name: package.json
+          path: dist/package.json
+
+      - name: Upload README.md
+        uses: actions/upload-artifact@v2
+        with:
+          name: README.md
+          path: dist/README.md
+
+      - name: Upload LICENSE
+        uses: actions/upload-artifact@v2
+        with:
+          name: LICENSE
+          path: dist/LICENSE
+
+      - name: Upload main.d.ts
+        uses: actions/upload-artifact@v2
+        with:
+          name: main.d.ts
+          path: dist/main.d.ts
+
+      - name: Upload CHANGELOG.md
+        uses: actions/upload-artifact@v2
+        with:
+          name: CHANGELOG.md
+          path: dist/CHANGELOG.md   
+
+
+
+
