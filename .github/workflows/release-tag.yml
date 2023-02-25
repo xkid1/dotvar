@@ -3,6 +3,11 @@ on:
   push:
     tags:
       - 'v*' 
+permissions:
+  deployments: write
+  contents: write
+  packages: write
+  
 jobs:
   release-tag:    
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -33,6 +38,7 @@ jobs:
       - name: Create release tag
         id: create_release
         uses: actions/create-release@v1   #actions/create-release@latest
+        
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
