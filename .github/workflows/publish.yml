@@ -1,0 +1,49 @@
+name: publish
+on:  
+  release:
+    types: [published]
+jobs:   
+  publish:
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    strategy:
+        matrix:
+          os: [ubuntu-latest, windows-latest, macos-latest]
+          node-version: [18.x 16.x, 14.x, 12.x]
+
+    runs-on: ${{ matrix.os }}    
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        registry-url: 'https://registry.npmjs.org'
+    - name: Install dependencies
+      run: npm install
+    - name: Build package
+      run: npm start
+    - name: Check if version exists
+      id: check-version
+      run: |
+        npm view dotvar@${{ github.event.release.tag_name }} version
+        if [ $? -eq 0 ]; then
+          echo "Version already exists"
+          exit 1
+        fi  
+    - name: Publish package     
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}    
+      run: |
+        npm config set '//registry.npmjs.org/:_authToken' $NODE_AUTH_TOKEN
+        npm publish --access public
+        echo "Published version ${{ github.event.release.tag_name }}"      
+    
+
+
+
+
+

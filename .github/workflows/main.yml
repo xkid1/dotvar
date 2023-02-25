@@ -3,19 +3,27 @@ on:
   push:
     branches:
       - main
+permissions:
+  deployments: write  
+
 jobs:
   unit-test:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18.x 16.x, 14.x, 12.x]
+
+    runs-on: ${{ matrix.os }}    
     steps:    
-      # - name: Check for main branch push
-      #   run:  |
-      #     git fetch
-      #     git checkout main
-      #     git merge --ff-only origin/main || {
-      #       echo "Merge conflict detected in main branch"
-      #       exit 1
-      #     }
+      - name: Check for main branch push
+        run:  |
+          git fetch
+          git checkout main
+          git merge --ff-only origin/main || {
+            echo "Merge conflict detected in main branch"
+            exit 1
+          }
 
       - uses: actions/checkout@v3
         with:
@@ -24,7 +32,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18.x
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
         run: npm install
