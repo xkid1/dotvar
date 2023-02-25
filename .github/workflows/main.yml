@@ -1,0 +1,35 @@
+name: dotvar
+on:
+  push:
+    branches:
+      - main
+jobs:
+  unit-test:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:    
+      - name: Check for main branch push
+        run:  |
+          git fetch
+          git checkout main
+          git merge --ff-only origin/main || {
+            echo "Merge conflict detected in main branch"
+            exit 1
+          }
+          
+      - uses: actions/checkout@v2
+      - name: Set up version 16
+        uses: actions/setup-node@v1
+        with:
+          node-version: 18.x
+
+      - name: Install dependencies
+        run: npm install
+      # - name: Test
+      #   run: npm run test
+
+      - name: Build package
+        run: npm start
+     
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
