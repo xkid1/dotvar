@@ -28,10 +28,11 @@ jobs:
           cp CHANGELOG.md dist/
 
       - name: Set release version        
-        uses: actions/checkout@master
-      - name: Create Release for Tag
+        uses: actions/checkout@main
+
+      - name: Create release tag
         id: create_release
-        uses: actions/create-release@latest
+        uses: actions/create-release@v1   #actions/create-release@latest
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
