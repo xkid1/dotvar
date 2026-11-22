@@ -1,0 +1,41 @@
+name: Question or other request
+description: Ask how to use the library, or raise something not covered by the other forms.
+title: '[Question]: '
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The [README](https://github.com/xkid1/dotvar#readme) covers the `.env` syntax, every
+        validator, framework setup (React, Vue, Angular, Svelte, Electron, React Native),
+        error codes and the API reference. It may already answer your question.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Topic
+      options:
+        - Usage / how do I...?
+        - Framework setup
+        - Loading .env files
+        - Secrets and client bundles
+        - TypeScript
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Question or request
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Relevant code, versions or links. Never paste real .env values, API keys or tokens.
+      render: typescript

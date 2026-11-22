@@ -1,0 +1,67 @@
+name: Detect code changes
+description: >-
+  Sets `code=false` when a pull request or push to main only touches docs and
+  config (*.md, *.yml, *.yaml outside .github/, docs/), so expensive jobs can skip
+  themselves. Changes to workflows and actions always count as code, so a workflow
+  edit is validated by the workflows it changes. Every
+  other event (manual runs, tags, schedules, workflow_call) reports `code=true`.
+  Requires a checkout with full history (fetch-depth: 0).
+
+outputs:
+  code:
+    description: "'true' if anything other than docs/config changed"
+    value: ${{ steps.detect.outputs.code }}
+
+runs:
+  using: composite
+  steps:
+    - id: detect
+      shell: bash
+      env:
+        EVENT: ${{ github.event_name }}
+        REF: ${{ github.ref }}
+        BEFORE: ${{ github.event.before }}
+        SHA: ${{ github.sha }}
+      run: |
+        set -euo pipefail
+
+        if [ "$EVENT" = "pull_request" ]; then
+          # The PR checkout is a merge commit; its first parent is the base branch.
+          RANGE="HEAD^1 HEAD"
+        elif [ "$EVENT" = "push" ] && [[ "$REF" == refs/heads/* ]] \
+             && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+          RANGE="$BEFORE $SHA"
+        else
+          echo "Event '$EVENT' ($REF): running everything."
+          echo "code=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # shellcheck disable=SC2086
+        if ! FILES=$(git diff --name-only $RANGE); then
+          echo "Could not diff $RANGE: running everything."
+          echo "code=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        CODE=false
+        while IFS= read -r f; do
+          [ -z "$f" ] && continue
+          case "$f" in
+            # These .yml files change how the package is installed, built or tested.
+            .yarnrc.yml | .github/actions/* | .github/workflows/*) CODE=true ;;
+            # Docs, README media and repository config.
+            *.md | *.yml | *.yaml | docs/* | CODEOWNERS | LICENSE) ;;
+            *) CODE=true ;;
+          esac
+          if [ "$CODE" = true ]; then
+            echo "Code change: $f"
+            break
+          fi
+        done <<< "$FILES"
+
+        if [ "$CODE" = false ]; then
+          echo "Only docs/config changed; code checks will be skipped:"
+          printf '  %s\n' $FILES
+        fi
+        echo "code=$CODE" >> "$GITHUB_OUTPUT"

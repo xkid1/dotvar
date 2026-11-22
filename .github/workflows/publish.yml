@@ -1,49 +1,229 @@
-name: publish
-on:  
-  release:
-    types: [published]
-jobs:   
-  publish:
-    if: github.event_name == 'release' && github.event.action == 'published'
+name: Publish package
 
-    strategy:
-        matrix:
-          os: [ubuntu-latest, windows-latest, macos-latest]
-          node-version: [18.x, 16.x, 14.x, 12.x]
+# Fully automated release. Pushing a `vX.Y.Z` tag runs:
+#
+#   verify  → tag matches package.json, CHANGELOG has the version,
+#             `yarn check`, `yarn build`, `yarn verify:dist`, then packs the tarball
+#   e2e     → the end-user suite (e2e.yml) on Node 20–26
+#   publish → that exact verified tarball to npm as `dotvar` (with provenance) and,
+#             re-scoped as `@xkid1/dotvar` (GitHub Packages only accepts scoped names
+#             matching the repository owner), to GitHub Packages; then the GitHub release
+#
+# Every publish step is skipped when that version already exists, so re-running the
+# workflow (or dispatching it manually with the tag) safely finishes a release that
+# failed halfway. A version with a hyphen (1.2.0-beta.1) goes to the `next` dist-tag
+# and becomes a GitHub pre-release.
+#
+# npm authentication, in order of preference:
+#   1. Trusted publishing (OIDC): no secret needed. Configure it on npmjs.com under
+#      the package's Settings → Trusted publisher (GitHub Actions, xkid1/dotvar,
+#      publish.yml). Provenance is added automatically.
+#   2. NPM_TOKEN repository secret (granular token, "Read and write"). Needed for the
+#      very first publish, because trusted publishing can only be configured once the
+#      package exists on npm.
 
-    runs-on: ${{ matrix.os }}    
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing version tag to (re)publish, e.g. v0.2.0
+        required: true
+        type: string
 
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+
+jobs:
+  verify:
+    name: Verify release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      name: ${{ steps.meta.outputs.name }}
+      version: ${{ steps.meta.outputs.version }}
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      dist_tag: ${{ steps.meta.outputs.dist_tag }}
+      tarball: ${{ steps.pack.outputs.tarball }}
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+      - uses: ./.github/actions/setup
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        registry-url: 'https://registry.npmjs.org'
-    - name: Install dependencies
-      run: npm install
-    - name: Build package
-      run: npm start
-    - name: Check if version exists
-      id: check-version
-      run: |
-        npm view dotvar@${{ github.event.release.tag_name }} version
-        if [ $? -eq 0 ]; then
-          echo "Version already exists"
-          exit 1
-        fi  
-    - name: Publish package     
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}    
-      run: |
-        npm config set '//registry.npmjs.org/:_authToken' $NODE_AUTH_TOKEN
-        npm publish --access public
-        echo "Published version ${{ github.event.release.tag_name }}"      
-    
+      - name: Verify tag and changelog
+        id: meta
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from 'node:fs';
 
+          const { name, version } = JSON.parse(readFileSync('package.json', 'utf8'));
+          const releaseTag = process.env.RELEASE_TAG;
+          if (releaseTag !== `v${version}`) {
+            throw new Error(`Release tag ${releaseTag} must match v${version}`);
+          }
 
+          // Accept `## 1.2.0`, `## [1.2.0]` and either with a date suffix (`## 1.2.0 - 2026-11-18`).
+          const changelog = readFileSync('CHANGELOG.md', 'utf8');
+          const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const heading = new RegExp(`^## \\[?${escaped}\\]?(\\s|$)`, 'm');
+          if (!heading.test(changelog)) {
+            throw new Error(`CHANGELOG.md must have a "## ${version}" heading for this release`);
+          }
 
+          // 1.2.0-beta.1 -> npm dist-tag "next" and a GitHub pre-release.
+          const prerelease = version.includes('-');
+          appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `name=${name}\nversion=${version}\nprerelease=${prerelease}\n` +
+              `dist_tag=${prerelease ? 'next' : 'latest'}\n`,
+          );
+          NODE
 
+      - run: yarn check
+      - run: yarn build
+      - run: yarn verify:dist
 
+      # `yarn pack` respects "files" and does not re-run lifecycle scripts, so the
+      # tarball is exactly the dist/ verified above.
+      - name: Pack tarball
+        id: pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/pack"
+          TARBALL="dotvar-${GITHUB_SHA::12}.tgz"
+          yarn pack --out "$RUNNER_TEMP/pack/$TARBALL"
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-tarball
+          path: ${{ runner.temp }}/pack/*.tgz
+          retention-days: 7
+
+  e2e:
+    name: End-user tests
+    needs: verify
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/e2e.yml
+    with:
+      ref: refs/tags/${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+
+  publish:
+    name: Publish ${{ needs.verify.outputs.version }}
+    needs: [verify, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release
+      packages: write # publish to GitHub Packages
+      id-token: write # npm trusted publishing + provenance
+    env:
+      NAME: ${{ needs.verify.outputs.name }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      DIST_TAG: ${{ needs.verify.outputs.dist_tag }}
+    steps:
+      # Only .nvmrc is needed here; the package itself is the verified tarball.
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          sparse-checkout: .nvmrc
+          sparse-checkout-cone-mode: false
+
+      - name: Download verified tarball
+        uses: actions/download-artifact@v8
+        with:
+          name: package-tarball
+          path: ${{ runner.temp }}/pack
+
+      - name: Locate tarball
+        env:
+          TARBALL_NAME: ${{ needs.verify.outputs.tarball }}
+        run: |
+          TARBALL="$RUNNER_TEMP/pack/$TARBALL_NAME"
+          test -f "$TARBALL" || { echo "Verified tarball $TARBALL not found"; exit 1; }
+          echo "TARBALL=$TARBALL" >> "$GITHUB_ENV"
+
+      # ---------------------------------------------------------------- npmjs.com
+      - name: Setup Node for npmjs.com
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@xkid1'
+
+      - name: Publish to npm
+        env:
+          # Used only if trusted publishing isn't configured for the package yet.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          REGISTRY: https://registry.npmjs.org
+        run: |
+          if npm view "$NAME@$VERSION" version --registry "$REGISTRY" "--@xkid1:registry=$REGISTRY" >/dev/null 2>&1; then
+            echo "$NAME@$VERSION is already on npm; skipping."
+            exit 0
+          fi
+          npm publish "$TARBALL" --access public --provenance --tag "$DIST_TAG" \
+            --registry "$REGISTRY" "--@xkid1:registry=$REGISTRY"
+
+      # ---------------------------------------------------------- GitHub Packages
+      - name: Setup Node for GitHub Packages
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@xkid1'
+
+      # GitHub Packages requires a scope that matches the owner, so the verified tarball is
+      # unpacked, renamed to @xkid1/dotvar (only package.json "name" changes) and repacked.
+      - name: Re-scope tarball for GitHub Packages
+        run: |
+          WORK="$RUNNER_TEMP/gpr"
+          mkdir -p "$WORK"
+          tar -xzf "$TARBALL" -C "$WORK"
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            const file = process.argv[1];
+            const pkg = JSON.parse(readFileSync(file, "utf8"));
+            pkg.name = "@xkid1/dotvar";
+            pkg.publishConfig = { registry: "https://npm.pkg.github.com" };
+            writeFileSync(file, JSON.stringify(pkg, null, 2) + "\n");
+          ' "$WORK/package/package.json"
+          tar -czf "$WORK/gpr.tgz" -C "$WORK" package
+          echo "GPR_TARBALL=$WORK/gpr.tgz" >> "$GITHUB_ENV"
+
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY: https://npm.pkg.github.com
+          GPR_NAME: '@xkid1/dotvar'
+        run: |
+          if npm view "$GPR_NAME@$VERSION" version --registry "$REGISTRY" "--@xkid1:registry=$REGISTRY" >/dev/null 2>&1; then
+            echo "$GPR_NAME@$VERSION is already on GitHub Packages; skipping."
+            exit 0
+          fi
+          npm publish "$GPR_TARBALL" --tag "$DIST_TAG" \
+            --registry "$REGISTRY" "--@xkid1:registry=$REGISTRY"
+
+      # ------------------------------------------------------------ GitHub release
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; skipping."
+            exit 0
+          fi
+          FLAGS=(--repo "$GITHUB_REPOSITORY" --generate-notes --verify-tag)
+          if [ "$PRERELEASE" = "true" ]; then FLAGS+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" "${FLAGS[@]}"

@@ -1,0 +1,65 @@
+name: CI
+
+# Code-quality gate. Each job is its own status check, so they can be marked
+# "required" individually in the branch rule for main (see .github/CI_BUILD_STRATEGY.md).
+# Tests, Build, Size and E2E live in their own workflows so each has its own badge.
+# Together they cover `yarn check` (typecheck + lint + format:check + test).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Skips the jobs below when only *.md / *.yml files changed. Skipped jobs
+  # count as passed for required status checks, so docs-only PRs can merge.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: changes
+        uses: ./.github/actions/changes
+
+  lint:
+    name: Lint
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: yarn lint
+
+  typecheck:
+    name: Typecheck
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: yarn typecheck
+
+  format:
+    name: Format
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: yarn format:check

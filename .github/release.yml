@@ -1,0 +1,43 @@
+# Groups the auto-generated release notes (`gh release create --generate-notes`
+# in workflows/publish.yml) by the labels that labeler.yml and Dependabot apply.
+# A PR goes in the first category whose labels it matches.
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: Security
+      labels:
+        - security
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Parser
+      labels:
+        - parser
+    - title: Schema and validators
+      labels:
+        - schema
+    - title: Node loader
+      labels:
+        - node
+    - title: Types and utilities
+      labels:
+        - types
+        - utils
+        - source
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Tests and benchmarks
+      labels:
+        - tests
+        - e2e
+        - benchmarks
+    - title: CI and tooling
+      labels:
+        - ci
+        - tooling
+    - title: Other changes
+      labels:
+        - '*'

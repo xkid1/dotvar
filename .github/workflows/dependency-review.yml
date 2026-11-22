@@ -1,0 +1,38 @@
+name: Dependency review
+
+# Blocks pull requests that add or upgrade to a package version with a known
+# vulnerability. Runs on the lockfile diff, so it also covers transitive packages.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write # post the summary comment when the check fails
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@v5
+        with:
+          fail-on-severity: moderate
+          comment-summary-in-pr: on-failure
+          show-openssf-scorecard: true
+          # Advisories accepted after review. Each entry needs a reason, and is removed
+          # once a patched version lands (Dependabot will propose it).
+          #
+          # GHSA-fc5q-39xc-vjpf: picomatch <= 4.0.7 ReDoS with attacker-supplied glob
+          #   patterns. No patched version exists yet (2026-11-18). picomatch is a dev-only
+          #   transitive dependency (vite, vitest, eslint tooling); the published package has
+          #   zero runtime dependencies (verify:dist rejects any bare import in dist/), and the
+          #   globs it sees come from our own config files.
+          allow-ghsas: GHSA-fc5q-39xc-vjpf

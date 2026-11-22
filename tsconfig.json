@@ -1,30 +1,63 @@
 {
-    "compilerOptions": {
-        "types": ["node"],
-        "target": "ES2016",
-        "module": "CommonJS",
-        "allowJs": true,
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "noEmit": false,
-        "noEmitOnError": true,
-        "strictNullChecks": true,
-        "noImplicitReturns": true,
-        "noImplicitThis": true,
-        "noImplicitAny": true,
-        "strictFunctionTypes": true,
-        "strictPropertyInitialization": true,
-        "strictBindCallApply": true,
-        "removeComments": false,
-        "resolveJsonModule": true,
-        "baseUrl": ".",
-        "outDir": "dist",
-        "rootDir": ".",
-        "paths": {
-            "~/*": ["src/*"]
-        }
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    /* Language & Environment */
+    "target": "ES2020",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+
+    /*
+     * Absolute-path aliases. Barrels: '@libs', '@utils', '@types'.
+     * Sub-paths ('@libs/node', '@utils/helpers') exist so Node-only code can be imported
+     * without going through the universal barrel. There is deliberately no '@types/*'
+     * mapping: it would shadow DefinitelyTyped packages such as '@types/node'.
+     * Keep in sync with vitest.config.ts and scripts/rewrite-aliases.mjs.
+     */
+    "paths": {
+      "@libs": ["./src/libs/index.ts"],
+      "@libs/*": ["./src/libs/*"],
+      "@utils": ["./src/utils/index.ts"],
+      "@utils/*": ["./src/utils/*"],
+      "@types": ["./src/types/index.ts"]
     },
-    "include": ["src/**/*.ts", "package.json", "main.d.ts"],
-    "exclude": ["node_modules", "**/node_modules/*"]
+
+    /* JavaScript Support */
+    "allowJs": true,
+    "checkJs": false,
+
+    /* Type Checking */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "useUnknownInCatchVariables": true,
+    "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+
+    /* Interop */
+    "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+
+    /* Emit: type-check only; see tsconfig.build.json for declarations */
+    "noEmit": true
+  },
+  "include": [
+    "src",
+    "bench",
+    "scripts",
+    "e2e/run.mjs",
+    "vitest.config.ts",
+    "eslint.config.ts",
+    ".prettierrc.ts"
+  ],
+  "exclude": ["node_modules", "dist", "build", "coverage"]
 }

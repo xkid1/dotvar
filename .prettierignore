@@ -1,0 +1,12 @@
+dist
+coverage
+node_modules
+.yarn
+yarn.lock
+package-lock.json
+/.github/
+*.md
+bench-results
+e2e/consumer/.svelte-out
+e2e/consumer/dist-bundles
+misc

@@ -1,0 +1,55 @@
+name: Setup Node and Yarn
+description: >-
+  Set up the repository's pinned Node and Yarn toolchain and install dependencies.
+  Node comes from .nvmrc unless `node-version` is given (the e2e matrix uses it).
+
+inputs:
+  node-version:
+    description: Node version to use instead of .nvmrc
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.node-version == ''
+      uses: actions/setup-node@v7
+      with:
+        node-version-file: .nvmrc
+        package-manager-cache: false
+    - if: inputs.node-version != ''
+      uses: actions/setup-node@v7
+      with:
+        node-version: ${{ inputs.node-version }}
+        package-manager-cache: false
+    - name: Ensure Corepack is installed and enabled
+      shell: bash
+      run: |
+        if ! command -v corepack >/dev/null 2>&1; then
+          npm install --global corepack
+        fi
+        corepack enable
+        corepack install
+    # Cache Yarn's package archives (not node_modules), keyed on the lockfile.
+    # setup-node's own cache is off because it runs before Corepack provides the
+    # pinned Yarn version. Caches are listed under Actions → Caches.
+    - name: Locate Yarn cache
+      id: yarn-cache
+      shell: bash
+      run: echo "dir=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
+    - name: Cache Yarn packages
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.yarn-cache.outputs.dir }}
+        key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock', '.yarnrc.yml') }}
+        # Lockfile changed: start from the newest cache and download only the diff.
+        restore-keys: |
+          yarn-${{ runner.os }}-
+    # Everything installed here is a devDependency (TypeScript, SWC, ESLint, Vitest):
+    # the published package has zero runtime dependencies. NODE_AUTH_TOKEN satisfies
+    # the @xkid1 scope in .yarnrc.yml (GitHub Packages, npmAlwaysAuth).
+    - name: Install dependencies
+      shell: bash
+      env:
+        NODE_AUTH_TOKEN: ${{ github.token }}
+      run: yarn install --immutable

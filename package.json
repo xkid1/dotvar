@@ -1,51 +1,109 @@
 {
   "name": "dotvar",
-  "version": "1.0.1",
-  "description": "Environment variables from .evn",
-  "main": "dist/src/main.js",
-  "module": "dist/src/main.js",
-  "scripts": {
-    "dev": "tsc --watch -p tsconfig.json",
-    "start": "tsc -p tsconfig.json"
-  },
-  "author": "Elmer Alluad Jr",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^18.14.0",
-    "eslint": "^8.34.0",
-    "typescript": "^4.9.5"
-  },
+  "version": "2.0.0",
+  "description": "Zero-dependency, type-safe and secure environment variables for Node, browsers, React, Vue, Angular, Svelte, Electron and React Native.",
   "keywords": [
     "dotvar",
     "env",
     "environment",
-    "variables",
-    "JavaScript Environment Variables",
-    "JavaScript Environment Variables from .env",
-    "Node Environment Variables",
-    "Node Environment Variables from .env",
+    "environment-variables",
+    "dotenv",
     ".env",
-    "settings",
     "config",
-    "dotenv"
+    "settings",
+    "validation",
+    "typescript",
+    "zero-dependency",
+    "react",
+    "vue",
+    "angular",
+    "svelte",
+    "electron",
+    "react-native"
   ],
-  "readmeFilename": "README.md",
-  "engines": {
-    "node": ">=14"
-  },
+  "homepage": "https://github.com/xkid1/dotvar#readme",
+  "bugs": "https://github.com/xkid1/dotvar/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xkid1/dotvar.git"
   },
-  "bugs": {
-    "url": "https://github.com/xkid1/dotvar/issues"
-  },
-  "types": "main.d.ts",
-  "tsd": {
-    "directory": "main.d.ts"
+  "license": "MIT",
+  "author": "xkid1",
+  "type": "module",
+  "sideEffects": [
+    "./dist/config.js"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
-    "dist/"
+    "dist",
+    "!dist/**/*.map",
+    "README.md",
+    "LICENSE"
   ],
-  "homepage": "https://github.com/xkid1/dotvar#readme"
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "packageManager": "yarn@4.18.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "yarn clean && yarn build:js && yarn build:types && node scripts/rewrite-aliases.mjs",
+    "build:js": "swc src -d dist --strip-leading-paths --config-file .swcrc",
+    "build:types": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "verify:dist": "node scripts/verify-dist.mjs",
+    "e2e": "yarn build && node e2e/run.mjs",
+    "bench": "vitest bench --run",
+    "bench:size": "node bench/size.mjs",
+    "bench:runtimes": "node bench/runtimes.mjs",
+    "check": "yarn typecheck && yarn lint && yarn format:check && yarn test",
+    "prepublishOnly": "yarn check && yarn build && yarn verify:dist"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@swc/cli": "^0.8.2",
+    "@swc/core": "^1.16.22",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "@vitest/eslint-plugin": "^1.6.28",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import-x": "^4.18.0",
+    "eslint-plugin-n": "^18.5.0",
+    "eslint-plugin-security": "^4.2.1",
+    "globals": "^17.14.0",
+    "jiti": "^2.7.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
+  }
 }

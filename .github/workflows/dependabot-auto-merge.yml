@@ -1,0 +1,37 @@
+name: Dependabot auto-merge
+
+# Turns on auto-merge for low-risk Dependabot PRs: minor/patch devDependency
+# updates and minor/patch GitHub Actions updates. GitHub merges them only once
+# every required status check passes. Major updates always wait for a human.
+#
+# Requires: Settings → General → "Allow auto-merge", and required status checks
+# on main (see .github/CI_BUILD_STRATEGY.md).
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'xkid1/dotvar'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: >-
+          steps.metadata.outputs.update-type != 'version-update:semver-major' &&
+          (steps.metadata.outputs.package-ecosystem == 'github_actions' ||
+           steps.metadata.outputs.dependency-type == 'direct:development')
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
