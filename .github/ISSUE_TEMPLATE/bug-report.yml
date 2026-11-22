@@ -1,0 +1,96 @@
+name: Bug report
+description: Report a reproducible problem with dotvar.
+title: '[Bug]: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem.
+
+        **Security issue?** (for example a value that leaks into a log or error, a secret that reaches a client bundle, or a parser bypass) Don't open a public issue. Report it privately instead; see [SECURITY.md](https://github.com/xkid1/dotvar/blob/main/SECURITY.md).
+
+        **Never paste real values.** Replace every secret in your `.env` with a placeholder such as `xxx`. The *shape* of the line (quotes, `#`, `${…}`) is what matters.
+
+        Please search [existing issues](https://github.com/xkid1/dotvar/issues?q=is%3Aissue) first.
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: Run `npm ls dotvar`.
+      placeholder: 2.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: entry
+    attributes:
+      label: Entry point
+      multiple: true
+      options:
+        - dotvar (universal)
+        - dotvar/node
+        - dotvar/config
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: What goes wrong?
+      multiple: true
+      options:
+        - .env parsing (quotes, comments, multi-line, export)
+        - ${VAR} expansion
+        - createEnv / validators
+        - Loading files (cascade, mode, override)
+        - Secret redaction / client-runtime guard
+        - TypeScript types
+        - Installation / packaging / bundler / runtime support
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: error
+    attributes:
+      label: Error code
+      description: The `code` of the thrown `DotvarError` (if any).
+      placeholder: ERR_DOTVAR_PARSE, ERR_DOTVAR_VALIDATION, …
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: |
+        A link to a small repository is best. Otherwise paste the smallest `.env` snippet
+        (with placeholder values) and code that shows the problem.
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the full error message and stack trace.
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Framework, bundler and runtime
+      placeholder: Vite 8 + React 19 in Chrome 142, Next.js 16 on Node 24, Expo 54 on Android 16, Electron 39…
+    validations:
+      required: true

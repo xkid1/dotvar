@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Every npm package here is a devDependency (the library has zero runtime
+  # dependencies), so these PRs never change what end users install.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    # Wait a few days after a release before proposing it, so compromised or
+    # quickly-yanked versions don't reach the repo.
+    cooldown:
+      default-days: 5
+    commit-message:
+      prefix: 'build(deps)'
+    groups:
+      # Safe updates land together; breaking ones get their own PR so one bad
+      # major version doesn't block the rest.
+      dev-minor-patch:
+        dependency-type: development
+        update-types: [minor, patch]
+      dev-major:
+        dependency-type: development
+        update-types: [major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 5
+    commit-message:
+      prefix: 'ci(deps)'
+    groups:
+      github-actions:
+        patterns: ['*']

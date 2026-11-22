@@ -1,0 +1,104 @@
+name: Benchmarks
+
+# Size: brotli budgets for each entry point and common import (bench/size-budget.json),
+# enforced on every PR. Runtimes: speed of the built package in Node, Bun, Deno and
+# real browsers. Shared runners are noisy, so that runs on demand and on main only;
+# compare runs, not absolutes.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      time:
+        description: Milliseconds per benchmark
+        default: '1000'
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: changes
+        uses: ./.github/actions/changes
+
+  size:
+    name: Size
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: yarn build
+      - name: Size report (fails over budget)
+        run: node bench/size.mjs --check --json=size.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bench-size
+          path: size.json
+          if-no-files-found: ignore
+
+  runtimes:
+    name: Runtimes (${{ matrix.runtime }})
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: node
+            targets: node
+          - runtime: bun
+            targets: bun
+          - runtime: deno
+            targets: deno
+          - runtime: browsers
+            targets: chromium,firefox,webkit
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: yarn build
+
+      - if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@v2
+      - if: matrix.runtime == 'deno'
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - if: matrix.runtime == 'browsers'
+        name: Install Playwright outside the repo (keeps yarn.lock untouched)
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1
+          npx playwright install --with-deps chromium firefox webkit
+          echo "PLAYWRIGHT_DIR=$RUNNER_TEMP/pw" >> "$GITHUB_ENV"
+
+      - name: Benchmark (${{ matrix.runtime }})
+        env:
+          TARGETS: ${{ matrix.targets }}
+          TIME: ${{ inputs.time || '1000' }}
+          RUNTIME: ${{ matrix.runtime }}
+        run: |
+          node bench/runtimes.mjs --runtimes="$TARGETS" --time="$TIME" \
+            --json="bench-$RUNTIME.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bench-${{ matrix.runtime }}
+          path: bench-${{ matrix.runtime }}.json

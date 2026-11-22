@@ -1,0 +1,36 @@
+name: Welcome first-time contributors
+
+on:
+  issues:
+    types:
+      - opened
+  pull_request_target:
+    types:
+      - opened
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      # v3 renamed the inputs to snake_case; repo_token defaults to github.token.
+      - name: Welcome first-time contributors
+        uses: actions/first-interaction@v3
+        with:
+          issue_message: >-
+            Thanks for opening your first issue! A maintainer will take a look soon.
+            If it's a bug, the `DotvarError` code, the entry point you import
+            (`dotvar`, `dotvar/node`, `dotvar/config`), your framework / bundler and
+            the browser or runtime help us fix it faster. Please never paste real
+            .env values, API keys or tokens. Security problems belong in a private
+            advisory (see SECURITY.md), not an issue.
+          pr_message: >-
+            Thanks for your first pull request! Please make sure `yarn check` and
+            `yarn e2e` pass locally and the PR title follows Conventional Commits (for
+            example `fix(parser): keep '#' inside unquoted URLs`). Every
+            new security check needs a negative test. See Contributing.md
+            for the ground rules. A maintainer will review it soon.

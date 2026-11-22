@@ -1,0 +1,60 @@
+name: Feature request
+description: Suggest an improvement or a new capability.
+title: '[Feature]: '
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        dotvar has zero runtime dependencies, stays small (see `bench/size-budget.json`) and
+        runs unchanged in browsers, Node, Bun, Deno, Electron and React Native. Its security
+        defaults are never relaxed: a new option may *add* strictness or offer an explicit
+        opt-in, but can't weaken a default. Proposals that fit within that are the easiest
+        to accept.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - .env syntax / parser
+        - Validators / createEnv
+        - File loading (dotvar/node)
+        - Framework or runtime support
+        - TypeScript types
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What are you trying to build, and what stops you today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: The option or API you'd like, with a short usage example.
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you use today, or other libraries that solve this.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to open a pull request for this.

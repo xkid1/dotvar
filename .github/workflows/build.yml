@@ -1,0 +1,51 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Skips the jobs below when only *.md / *.yml files changed. Skipped jobs
+  # count as passed for required status checks, so docs-only PRs can merge.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: changes
+        uses: ./.github/actions/changes
+
+  # clean → swc (JS) → tsc (d.ts) → scripts/rewrite-aliases.mjs, then
+  # scripts/verify-dist.mjs: no leftover @libs/@utils/@types aliases, no bare
+  # imports (zero runtime dependencies), every relative import resolves, the universal
+  # entry never reaches a `node:` module (browser / React Native safe), and every entry
+  # point (`.`, `./node`, `./config`) loads in Node.
+  package:
+    name: Build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - run: yarn build
+      - run: yarn verify:dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

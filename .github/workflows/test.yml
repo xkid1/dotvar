@@ -1,0 +1,66 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Skips the jobs below when only *.md / *.yml files changed. Skipped jobs
+  # count as passed for required status checks, so docs-only PRs can merge.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: changes
+        uses: ./.github/actions/changes
+
+  # Unit and negative-security tests with the coverage thresholds from vitest.config.ts
+  # (95% lines/functions/statements, 90% branches): dropping below them fails the check.
+  test:
+    name: Test
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Tests with coverage
+        run: yarn test:coverage --coverage.reporter=text --coverage.reporter=text-summary --coverage.reporter=lcov
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            node --input-type=module <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import { readFileSync } from 'node:fs';
+          const lcov = readFileSync('coverage/lcov.info', 'utf8');
+          const sum = (key) => [...lcov.matchAll(new RegExp(`^${key}:(\\d+)`, 'gm'))]
+            .reduce((total, match) => total + Number(match[1]), 0);
+          const pct = (hit, found) => (sum(found) ? ((100 * sum(hit)) / sum(found)).toFixed(2) : '100');
+          console.log('### Coverage\n');
+          console.log('| Lines | Functions | Branches |');
+          console.log('| ---: | ---: | ---: |');
+          console.log(`| ${pct('LH', 'LF')}% | ${pct('FNH', 'FNF')}% | ${pct('BRH', 'BRF')}% |`);
+          NODE
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 14
+          if-no-files-found: ignore

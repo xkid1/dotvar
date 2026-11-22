@@ -1,0 +1,85 @@
+name: End-user tests
+
+# `yarn e2e` builds the package, packs only what "files" publishes, installs the
+# tarball OFFLINE into a fresh consumer app (which only succeeds with zero
+# dependencies), runs e2e/consumer/*.test.{mjs,cjs} with `node --test` (ESM, CommonJS
+# require(esm), dotvar/config, simulated browser and React Native runtimes),
+# type-checks a TypeScript consumer in NodeNext and Bundler resolution without
+# @types/node, and bundles the universal entry for the browser with Vite. Runs on every
+# Node line the package supports (engines: >=20.19).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  # publish.yml runs this suite on the release tag before publishing.
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref (tag) to test
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  # workflow_call runs share the caller's github.workflow, so key on the ref too.
+  group: e2e-${{ inputs.ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Skips the suite when only *.md / *.yml files changed. Always runs for
+  # release.yml (tag push), manual runs and other events; see the action.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+      - id: changes
+        uses: ./.github/actions/changes
+
+  matrix:
+    name: Node ${{ matrix.node }}
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24, 26]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - uses: ./.github/actions/setup
+        with:
+          node-version: ${{ matrix.node }}
+      - run: yarn e2e
+
+  # One stable status check to mark as required, whatever the matrix contains.
+  e2e:
+    name: E2E
+    needs: [changes, matrix]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All end-user test jobs passed
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+          MATRIX_RESULT: ${{ needs.matrix.result }}
+        run: |
+          echo "changes: $CHANGES_RESULT (code=$CODE), matrix: $MATRIX_RESULT"
+          if [ "$CHANGES_RESULT" = success ] && [ "$CODE" = false ]; then
+            echo "Only docs/config changed; end-user suite skipped."
+            exit 0
+          fi
+          [ "$MATRIX_RESULT" = success ]

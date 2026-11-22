@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /*
+     * ES2020 library only: the published code must run in every evergreen browser,
+     * Hermes (React Native) and Node >= 20 without polyfills.
+     * Node typings are needed to compile src/libs/node, but no public declaration may
+     * reference them (scripts/verify-dist.mjs fails the build if one does).
+     */
+    "lib": ["ES2020"],
+    "types": ["node"],
+    "allowJs": false,
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "stripInternal": true,
+    "rootDir": "./src",
+    "outDir": "./dist"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
